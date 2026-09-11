@@ -110,13 +110,21 @@ function wireFormLinks(scope) {
 }
 
 async function loadAgenda() {
-  const response = await fetch("data/agenda.json", { cache: "no-store" });
-  const data = await response.json();
-  SESSIONS = (data.sesiones || []).slice().sort((a, b) => {
-    const left = `${a.fecha}T${a.hora}`;
-    const right = `${b.fecha}T${b.hora}`;
-    return left.localeCompare(right);
-  });
+  try {
+    const response = await fetch("data/agenda.json", { cache: "no-store" });
+    const data = await response.json();
+    SESSIONS = (data.sesiones || []).slice().sort((a, b) => {
+      const left = `${a.fecha}T${a.hora}`;
+      const right = `${b.fecha}T${b.hora}`;
+      return left.localeCompare(right);
+    });
+  } catch (error) {
+    // data/agenda.json missing or malformed (e.g. local dev before the sync
+    // script has ever run): degrade to the designed empty state instead of
+    // leaving the hero ticket half-populated and the agenda section blank.
+    console.error("No s'ha pogut carregar data/agenda.json:", error);
+    SESSIONS = [];
+  }
   renderHero();
   renderAgenda();
 }
