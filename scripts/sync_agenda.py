@@ -30,8 +30,15 @@ def parse_description(description: str) -> tuple[str, str]:
     return (description or "").strip(), ""
 
 
-def parse_sessions(ics_bytes: bytes) -> list[dict]:
-    """Parse calendar bytes into CONFIRMED sessions, sorted by fecha+hora."""
+def parse_sessions(ics_bytes: bytes, today: str | None = None) -> list[dict]:
+    """Parse calendar bytes into CONFIRMED, non-past sessions, sorted by fecha+hora.
+
+    A session is dropped once its `fecha` is strictly before `today`
+    (`YYYY-MM-DD`, defaults to the current UTC date) — same-day sessions stay
+    visible until midnight rather than disappearing during the day they happen.
+    """
+    if today is None:
+        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     calendar = Calendar.from_ical(ics_bytes)
     sessions = []
     for component in calendar.walk("VEVENT"):
@@ -42,11 +49,14 @@ def parse_sessions(ics_bytes: bytes) -> list[dict]:
         if dtstart_prop is None:
             continue
         dtstart = dtstart_prop.dt
+        fecha = dtstart.strftime("%Y-%m-%d")
+        if fecha < today:
+            continue
         titulo, ponente = parse_description(str(component.get("description", "")))
         sessions.append(
             {
                 "id": str(component.get("uid", "")),
-                "fecha": dtstart.strftime("%Y-%m-%d"),
+                "fecha": fecha,
                 "hora": dtstart.strftime("%H:%M"),
                 "titulo": titulo,
                 "ponente": ponente,

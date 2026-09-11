@@ -109,6 +109,20 @@ def test_parse_sessions_includes_only_confirmed_events():
     assert sessions[0]["id"] == "evt-confirmed-1@cavecavet.org"
 
 
+def test_parse_sessions_excludes_confirmed_events_before_today():
+    # CONFIRMED_EVENT is 2026-10-15; "today" here is after it, so it must drop out.
+    ics_bytes = make_ics(CONFIRMED_EVENT)
+    sessions = parse_sessions(ics_bytes, today="2026-10-16")
+    assert sessions == []
+
+
+def test_parse_sessions_keeps_confirmed_event_dated_today():
+    # Same-day sessions stay visible until midnight, not just up to their start time.
+    ics_bytes = make_ics(CONFIRMED_EVENT)
+    sessions = parse_sessions(ics_bytes, today="2026-10-15")
+    assert [s["id"] for s in sessions] == ["evt-confirmed-1@cavecavet.org"]
+
+
 def test_parse_sessions_maps_fields_correctly():
     ics_bytes = make_ics(CONFIRMED_EVENT)
     session = parse_sessions(ics_bytes)[0]
