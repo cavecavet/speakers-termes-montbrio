@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="ca">
+<head>
+<meta charset="utf-8">
+<title>Speakers Corner Termes Montbrió</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Work+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header>
+  <nav>
+    <div class="brand">
+      <img src="logos/cavecavet.png" alt="Associació Cave Cavet" style="object-fit:cover;object-position:0 0;width:36px;height:36px;">
+      <div class="brand-name">Speakers Corner<small data-i18n="nav.tag">Termes Montbrió · Cave Cavet</small></div>
+    </div>
+    <div class="nav-links">
+      <a href="#agenda" data-i18n="nav.agenda">Agenda</a>
+      <a href="#speaker" data-i18n="nav.speaker">Vull ser speaker</a>
+      <a href="#videos" data-i18n="nav.videos">Vídeos</a>
+      <a href="#contacte" data-i18n="nav.contact">Contacte</a>
+    </div>
+    <div style="display:flex;align-items:center;gap:1.1rem;">
+      <div class="hotel-mark"><img src="logos/termes-montbrio.webp" alt="Hotel Termes Montbrió"></div>
+      <div class="lang-toggle" role="group" aria-label="Idioma">
+        <button type="button" data-lang="ca" aria-pressed="true">CA</button>
+        <button type="button" data-lang="es" aria-pressed="false">ES</button>
+      </div>
+    </div>
+  </nav>
+</header>
+
+<section class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <p class="eyebrow" data-i18n="hero.eyebrow">Hotel Termes Montbrió · Associació Cave Cavet</p>
+      <h1 data-i18n="hero.title">Xerrades i tallers per pensar-hi, cada mes</h1>
+      <p data-i18n="hero.body">Un espai obert de conversa, aprenentatge i comunitat entre les termes de Montbrió. La majoria de sessions són gratuïtes, amb inscripció en línia.</p>
+      <div class="hero-actions">
+        <a class="btn btn-brass" href="#agenda" data-i18n="hero.cta1">Veure l'agenda</a>
+        <a class="btn btn-outline" href="#speaker" data-i18n="hero.cta2">Vull ser speaker</a>
+      </div>
+    </div>
+    <div class="ticket" id="hero-ticket">
+      <div class="ticket-top">
+        <span class="ticket-label" data-i18n="hero.next">PRÒXIMA SESSIÓ</span>
+        <span class="ticket-date mono" data-slot="date"></span>
+      </div>
+      <h3 data-slot="title"></h3>
+      <p class="who" data-slot="who"></p>
+      <a class="btn btn-ink" href="#" data-slot="cta" data-form="sesion_generica" data-i18n="hero.nextCta">Inscriu-te</a>
+    </div>
+  </div>
+</section>
+
+<section class="stone" id="agenda">
+  <div class="wrap">
+    <div class="section-head">
+      <div>
+        <p class="eyebrow" data-i18n="agenda.eyebrow">Programa</p>
+        <h2 data-i18n="agenda.title">Pròximes sessions</h2>
+      </div>
+    </div>
+    <div class="agenda-list" id="agenda-list"></div>
+    <div class="video-empty" id="agenda-empty" hidden></div>
+  </div>
+</section>
+
+<section class="cta-band" id="speaker">
+  <div class="wrap">
+    <p class="eyebrow" data-i18n="speaker.eyebrow">Obert a la comunitat</p>
+    <h2 data-i18n="speaker.title">Tens alguna cosa a explicar?</h2>
+    <p data-i18n="speaker.body">Busquem veus properes — terapeutes, investigadors, artesans, gent amb un ofici o una idea que valgui la pena compartir en 30 minuts.</p>
+    <a class="btn btn-brass" href="#" data-form="speaker" data-i18n="speaker.cta">Proposa la teva xerrada</a>
+  </div>
+</section>
+
+<section class="stone" id="videos">
+  <div class="wrap">
+    <div class="section-head">
+      <div>
+        <p class="eyebrow" data-i18n="videos.eyebrow">Arxiu</p>
+        <h2 data-i18n="videos.title">Vídeos i pòdcast</h2>
+      </div>
+    </div>
+    <div class="video-empty">
+      <span class="eyebrow" data-i18n="videos.soon">Pròximament</span>
+      <p data-i18n="videos.body">Encara no hem enregistrat cap sessió. Aquí hi apareixeran els vídeos de les xerrades i els episodis del pòdcast a mesura que es publiquin.</p>
+    </div>
+  </div>
+</section>
+
+<section class="newsletter">
+  <div class="wrap">
+    <div>
+      <p class="eyebrow" data-i18n="news.eyebrow">Newsletter</p>
+      <h2 data-i18n="news.title">No et perdis cap sessió</h2>
+      <p data-i18n="news.body">Un correu breu, un cop al mes, amb les properes xerrades i els vídeos publicats.</p>
+    </div>
+    <form class="subscribe" data-form="newsletter" onsubmit="return false;">
+      <input type="text" data-i18n-ph="news.name" placeholder="Nom">
+      <input type="email" data-i18n-ph="news.email" placeholder="Correu electrònic">
+      <button class="btn btn-brass" type="submit" data-i18n="news.cta">Subscriu-te</button>
+    </form>
+  </div>
+</section>
+
+<section class="stone" id="about">
+  <div class="wrap about-grid">
+    <div class="about-copy">
+      <p class="eyebrow" data-i18n="about.eyebrow">Qui ho organitza</p>
+      <h2 data-i18n="about.title">Una col·laboració entre l'hotel i l'associació</h2>
+      <p data-i18n="about.body">L'Hotel Termes Montbrió posa l'espai i les termes; l'Associació Cave Cavet aporta la xarxa de speakers i la programació. Junts construïm un cicle de xerrades obert a hostes i a la comunitat local.</p>
+    </div>
+    <div class="logo-cards">
+      <div class="logo-card">
+        <img class="assoc" src="logos/cavecavet.png" alt="Associació Cave Cavet">
+      </div>
+      <div class="logo-card dark">
+        <img src="logos/termes-montbrio.webp" alt="Hotel Termes Montbrió">
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer id="contacte">
+  <div class="wrap">
+    <div class="foot-grid">
+      <div class="foot-brand">
+        <img src="logos/cavecavet.png" alt="" style="object-fit:cover;object-position:0 0;width:30px;height:30px;">
+        <span>Speakers Corner Termes Montbrió</span>
+      </div>
+      <div class="foot-links">
+        <a href="#agenda" data-i18n="nav.agenda">Agenda</a>
+        <a href="#speaker" data-i18n="nav.speaker">Vull ser speaker</a>
+        <a href="mailto:associaciocavecavet@gmail.com">associaciocavecavet@gmail.com</a>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span data-i18n="foot.orgs">Associació Cave Cavet · Hotel Termes Montbrió</span>
+      <span>© 2026</span>
+    </div>
+  </div>
+</footer>
+
+<script src="js/i18n.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
