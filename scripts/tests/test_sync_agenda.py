@@ -142,3 +142,20 @@ def test_parse_sessions_sorts_by_date_then_time():
 def test_parse_sessions_returns_empty_list_when_nothing_confirmed():
     ics_bytes = make_ics(TENTATIVE_EVENT)
     assert parse_sessions(ics_bytes) == []
+
+
+CONFIRMED_NO_DTSTART_EVENT = """BEGIN:VEVENT
+UID:evt-confirmed-malformed@cavecavet.org
+DTSTAMP:20260901T090000Z
+SUMMARY:Speakers' Corner · esdeveniment mal format
+LOCATION:Hotel Termes de Montbrió
+DESCRIPTION:Ponent: Algú\\nTema: Sense data d'inici
+STATUS:CONFIRMED
+END:VEVENT
+"""
+
+
+def test_parse_sessions_skips_confirmed_event_without_dtstart():
+    ics_bytes = make_ics(CONFIRMED_NO_DTSTART_EVENT, CONFIRMED_EVENT)
+    sessions = parse_sessions(ics_bytes)
+    assert [s["id"] for s in sessions] == ["evt-confirmed-1@cavecavet.org"]

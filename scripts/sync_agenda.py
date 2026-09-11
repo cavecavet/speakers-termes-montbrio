@@ -29,7 +29,10 @@ def parse_sessions(ics_bytes: bytes) -> list[dict]:
         status = str(component.get("status", "")).upper()
         if status != "CONFIRMED":
             continue
-        dtstart = component.get("dtstart").dt
+        dtstart_prop = component.get("dtstart")
+        if dtstart_prop is None:
+            continue
+        dtstart = dtstart_prop.dt
         titulo, ponente = parse_description(str(component.get("description", "")))
         sessions.append(
             {
