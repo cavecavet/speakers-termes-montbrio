@@ -1,6 +1,15 @@
 """Sync data/agenda.json from the public Nextcloud Calendar export."""
 
+import json
+import sys
+import urllib.request
+from datetime import datetime, timezone
+from pathlib import Path
+
 from icalendar import Calendar
+
+ICS_URL = "https://cloud.cavecavet.org/remote.php/dav/public-calendars/RP5xH59a33ZBNwLx?export"
+OUTPUT_PATH = Path(__file__).resolve().parent.parent / "data" / "agenda.json"
 
 
 def parse_description(description: str) -> tuple[str, str]:
@@ -47,3 +56,48 @@ def parse_sessions(ics_bytes: bytes) -> list[dict]:
         )
     sessions.sort(key=lambda s: (s["fecha"], s["hora"]))
     return sessions
+
+
+def build_agenda(ics_bytes: bytes, source_url: str, generated_at: str) -> dict:
+    return {
+        "generated_at": generated_at,
+        "source": source_url,
+        "sesiones": parse_sessions(ics_bytes),
+    }
+
+
+def fetch_ics(url: str) -> bytes:
+    # Cloudflare (fronting cloud.cavecavet.org) returns 403 to urllib's default
+    # "Python-urllib/x.y" User-Agent; a normal browser-like one passes through.
+    request = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+    with urllib.request.urlopen(request, timeout=30) as response:
+        return response.read()
+
+
+def main() -> int:
+    ics_bytes = fetch_ics(ICS_URL)
+    generated_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    agenda = build_agenda(ics_bytes, ICS_URL, generated_at)
+    new_sessions = agenda["sesiones"]
+
+    old_sessions = None
+    if OUTPUT_PATH.exists():
+        try:
+            old_sessions = json.loads(OUTPUT_PATH.read_text(encoding="utf-8")).get("sesiones")
+        except json.JSONDecodeError:
+            old_sessions = None
+
+    if old_sessions == new_sessions:
+        print("agenda.json sense canvis (sessions idèntiques), no s'escriu res de nou.")
+        return 0
+
+    OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    OUTPUT_PATH.write_text(
+        json.dumps(agenda, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
+    print(f"agenda.json actualitzat amb {len(new_sessions)} sessions confirmades.")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

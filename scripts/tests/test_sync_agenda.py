@@ -159,3 +159,15 @@ def test_parse_sessions_skips_confirmed_event_without_dtstart():
     ics_bytes = make_ics(CONFIRMED_NO_DTSTART_EVENT, CONFIRMED_EVENT)
     sessions = parse_sessions(ics_bytes)
     assert [s["id"] for s in sessions] == ["evt-confirmed-1@cavecavet.org"]
+
+
+from sync_agenda import build_agenda
+
+
+def test_build_agenda_wraps_sessions_with_metadata():
+    ics_bytes = make_ics(CONFIRMED_EVENT)
+    agenda = build_agenda(ics_bytes, "https://example.org/feed.ics", "2026-09-11T15:00:00Z")
+    assert agenda["source"] == "https://example.org/feed.ics"
+    assert agenda["generated_at"] == "2026-09-11T15:00:00Z"
+    assert len(agenda["sesiones"]) == 1
+    assert agenda["sesiones"][0]["id"] == "evt-confirmed-1@cavecavet.org"
