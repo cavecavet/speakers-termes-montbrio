@@ -33,3 +33,112 @@ def test_parse_description_handles_empty_string():
     titulo, ponente = parse_description("")
     assert titulo == ""
     assert ponente == ""
+
+
+from sync_agenda import parse_sessions
+
+CONFIRMED_EVENT = """BEGIN:VEVENT
+UID:evt-confirmed-1@cavecavet.org
+DTSTAMP:20260901T090000Z
+DTSTART;TZID=Europe/Madrid:20261015T190000
+DTEND;TZID=Europe/Madrid:20261015T194500
+SUMMARY:Speakers' Corner · Mercè Milán
+LOCATION:Hotel Termes de Montbrió
+DESCRIPTION:Ponent: Mercè Milán\\nTema: El silenci com a eina de benestar
+STATUS:CONFIRMED
+END:VEVENT
+"""
+
+TENTATIVE_EVENT = """BEGIN:VEVENT
+UID:evt-tentative-1@cavecavet.org
+DTSTAMP:20260901T090000Z
+DTSTART;TZID=Europe/Madrid:20261005T110000
+DTEND;TZID=Europe/Madrid:20261005T114500
+SUMMARY:Speakers' Corner · Estela Trenado (provisional)
+LOCATION:Hotel Termes de Montbrió
+DESCRIPTION:Ponent: Estela Trenado\\nTema: Encara per confirmar
+STATUS:TENTATIVE
+END:VEVENT
+"""
+
+CONFIRMED_NO_PATTERN_EVENT = """BEGIN:VEVENT
+UID:evt-confirmed-2@cavecavet.org
+DTSTAMP:20260901T090000Z
+DTSTART;TZID=Europe/Madrid:20261005T180000
+DTEND;TZID=Europe/Madrid:20261005T184500
+SUMMARY:Speakers' Corner · sessió oberta
+LOCATION:Hotel Termes de Montbrió
+DESCRIPTION:Xerrada oberta sobre gestió del temps\\, sense format estàndard.
+STATUS:CONFIRMED
+END:VEVENT
+"""
+
+VCALENDAR_HEADER = """BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Test//Test//EN
+BEGIN:VTIMEZONE
+TZID:Europe/Madrid
+BEGIN:DAYLIGHT
+TZNAME:CEST
+TZOFFSETFROM:+0100
+TZOFFSETTO:+0200
+DTSTART:19700329T020000
+RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU
+END:DAYLIGHT
+BEGIN:STANDARD
+TZNAME:CET
+TZOFFSETFROM:+0200
+TZOFFSETTO:+0100
+DTSTART:19701025T030000
+RRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU
+END:STANDARD
+END:VTIMEZONE
+"""
+
+VCALENDAR_FOOTER = "END:VCALENDAR\n"
+
+
+def make_ics(*events: str) -> bytes:
+    return (VCALENDAR_HEADER + "".join(events) + VCALENDAR_FOOTER).encode("utf-8")
+
+
+def test_parse_sessions_includes_only_confirmed_events():
+    ics_bytes = make_ics(CONFIRMED_EVENT, TENTATIVE_EVENT)
+    sessions = parse_sessions(ics_bytes)
+    assert len(sessions) == 1
+    assert sessions[0]["id"] == "evt-confirmed-1@cavecavet.org"
+
+
+def test_parse_sessions_maps_fields_correctly():
+    ics_bytes = make_ics(CONFIRMED_EVENT)
+    session = parse_sessions(ics_bytes)[0]
+    assert session == {
+        "id": "evt-confirmed-1@cavecavet.org",
+        "fecha": "2026-10-15",
+        "hora": "19:00",
+        "titulo": "El silenci com a eina de benestar",
+        "ponente": "Mercè Milán",
+        "lugar": "Hotel Termes de Montbrió",
+        "tipo": "gratuito",
+    }
+
+
+def test_parse_sessions_falls_back_when_description_has_no_pattern():
+    ics_bytes = make_ics(CONFIRMED_NO_PATTERN_EVENT)
+    session = parse_sessions(ics_bytes)[0]
+    assert session["titulo"] == "Xerrada oberta sobre gestió del temps, sense format estàndard."
+    assert session["ponente"] == ""
+
+
+def test_parse_sessions_sorts_by_date_then_time():
+    ics_bytes = make_ics(CONFIRMED_EVENT, CONFIRMED_NO_PATTERN_EVENT)
+    sessions = parse_sessions(ics_bytes)
+    assert [s["id"] for s in sessions] == [
+        "evt-confirmed-2@cavecavet.org",
+        "evt-confirmed-1@cavecavet.org",
+    ]
+
+
+def test_parse_sessions_returns_empty_list_when_nothing_confirmed():
+    ics_bytes = make_ics(TENTATIVE_EVENT)
+    assert parse_sessions(ics_bytes) == []
