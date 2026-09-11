@@ -68,11 +68,13 @@ def parse_sessions(ics_bytes: bytes, today: str | None = None) -> list[dict]:
     return sessions
 
 
-def build_agenda(ics_bytes: bytes, source_url: str, generated_at: str) -> dict:
+def build_agenda(
+    ics_bytes: bytes, source_url: str, generated_at: str, today: str | None = None
+) -> dict:
     return {
         "generated_at": generated_at,
         "source": source_url,
-        "sesiones": parse_sessions(ics_bytes),
+        "sesiones": parse_sessions(ics_bytes, today=today),
     }
 
 

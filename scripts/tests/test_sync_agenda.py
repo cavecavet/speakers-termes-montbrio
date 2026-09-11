@@ -104,7 +104,7 @@ def make_ics(*events: str) -> bytes:
 
 def test_parse_sessions_includes_only_confirmed_events():
     ics_bytes = make_ics(CONFIRMED_EVENT, TENTATIVE_EVENT)
-    sessions = parse_sessions(ics_bytes)
+    sessions = parse_sessions(ics_bytes, today="2026-10-15")
     assert len(sessions) == 1
     assert sessions[0]["id"] == "evt-confirmed-1@cavecavet.org"
 
@@ -125,7 +125,7 @@ def test_parse_sessions_keeps_confirmed_event_dated_today():
 
 def test_parse_sessions_maps_fields_correctly():
     ics_bytes = make_ics(CONFIRMED_EVENT)
-    session = parse_sessions(ics_bytes)[0]
+    session = parse_sessions(ics_bytes, today="2026-10-15")[0]
     assert session == {
         "id": "evt-confirmed-1@cavecavet.org",
         "fecha": "2026-10-15",
@@ -139,14 +139,14 @@ def test_parse_sessions_maps_fields_correctly():
 
 def test_parse_sessions_falls_back_when_description_has_no_pattern():
     ics_bytes = make_ics(CONFIRMED_NO_PATTERN_EVENT)
-    session = parse_sessions(ics_bytes)[0]
+    session = parse_sessions(ics_bytes, today="2026-10-05")[0]
     assert session["titulo"] == "Xerrada oberta sobre gestió del temps, sense format estàndard."
     assert session["ponente"] == ""
 
 
 def test_parse_sessions_sorts_by_date_then_time():
     ics_bytes = make_ics(CONFIRMED_EVENT, CONFIRMED_NO_PATTERN_EVENT)
-    sessions = parse_sessions(ics_bytes)
+    sessions = parse_sessions(ics_bytes, today="2026-10-05")
     assert [s["id"] for s in sessions] == [
         "evt-confirmed-2@cavecavet.org",
         "evt-confirmed-1@cavecavet.org",
@@ -171,7 +171,7 @@ END:VEVENT
 
 def test_parse_sessions_skips_confirmed_event_without_dtstart():
     ics_bytes = make_ics(CONFIRMED_NO_DTSTART_EVENT, CONFIRMED_EVENT)
-    sessions = parse_sessions(ics_bytes)
+    sessions = parse_sessions(ics_bytes, today="2026-10-15")
     assert [s["id"] for s in sessions] == ["evt-confirmed-1@cavecavet.org"]
 
 
@@ -180,7 +180,9 @@ from sync_agenda import build_agenda
 
 def test_build_agenda_wraps_sessions_with_metadata():
     ics_bytes = make_ics(CONFIRMED_EVENT)
-    agenda = build_agenda(ics_bytes, "https://example.org/feed.ics", "2026-09-11T15:00:00Z")
+    agenda = build_agenda(
+        ics_bytes, "https://example.org/feed.ics", "2026-09-11T15:00:00Z", today="2026-10-15"
+    )
     assert agenda["source"] == "https://example.org/feed.ics"
     assert agenda["generated_at"] == "2026-09-11T15:00:00Z"
     assert len(agenda["sesiones"]) == 1
