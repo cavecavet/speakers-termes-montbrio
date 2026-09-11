@@ -1,4 +1,4 @@
-# Speakers Corner Termes Montbrió — Cave Cavet · Diseño
+# Speaker's Corner Termes Montbrió — Cave Cavet · Diseño
 
 ## Contexto
 
@@ -88,7 +88,7 @@ JSON pla al repo.
 
 ## Seccions de contingut (una sola pàgina, navegació per àncores)
 
-1. **Hero** — títol «Speakers Corner Termes Montbrió · Cave Cavet», subtítol, pròxima
+1. **Hero** — títol «Speaker's Corner Termes Montbrió · Cave Cavet», subtítol, pròxima
    sessió destacada, botons «Ver la agenda» / «Quiero ser speaker».
 2. **Agenda** — targetes de pròximes sessions generades des de `agenda.json`
    (data, hora, títol, gratis/preu, botó d'inscripció).

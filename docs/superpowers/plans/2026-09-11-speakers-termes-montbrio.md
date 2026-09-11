@@ -1,8 +1,8 @@
-# Speakers Corner Termes Montbrió Implementation Plan
+# Speaker's Corner Termes Montbrió Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build and publish a static one-page site for the "Speakers Corner Termes Montbrió · Cave Cavet" talks cycle, with its agenda synced automatically from an existing Nextcloud Calendar.
+**Goal:** Build and publish a static one-page site for the "Speaker's Corner Termes Montbrió · Cave Cavet" talks cycle, with its agenda synced automatically from an existing Nextcloud Calendar.
 
 **Architecture:** Plain HTML/CSS/JS, no build step, hosted on GitHub Pages (`speakers.cavecavet.org`). A Python script run on a schedule by a GitHub Action downloads the public `.ics` export of the `Xerrades Hotel Termes Montbrió` Nextcloud calendar, filters confirmed sessions, and writes `data/agenda.json`; the page's own JS only ever reads that already-generated JSON file — no CORS-restricted network call ever happens in the visitor's browser.
 
@@ -66,7 +66,7 @@ mkdir -p data scripts/tests css js .github/workflows
 - [ ] **Step 4: Write `README.md`**
 
 ```markdown
-# Speakers Corner Termes Montbrió
+# Speaker's Corner Termes Montbrió
 
 Lloc estàtic (sense build) del cicle de xerrades organitzat per l'Associació Cave
 Cavet i l'Hotel Termes Montbrió. Publicat a `speakers.cavecavet.org` via GitHub
@@ -634,7 +634,7 @@ Copy the entire contents of the `<style>` block from `preview/mockup.html` (line
 <html lang="ca">
 <head>
 <meta charset="utf-8">
-<title>Speakers Corner Termes Montbrió</title>
+<title>Speaker's Corner Termes Montbrió</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -647,7 +647,7 @@ Copy the entire contents of the `<style>` block from `preview/mockup.html` (line
   <nav>
     <div class="brand">
       <img src="logos/cavecavet.png" alt="Associació Cave Cavet" style="object-fit:cover;object-position:0 0;width:36px;height:36px;">
-      <div class="brand-name">Speakers Corner<small data-i18n="nav.tag">Termes Montbrió · Cave Cavet</small></div>
+      <div class="brand-name">Speaker's Corner<small data-i18n="nav.tag">Termes Montbrió · Cave Cavet</small></div>
     </div>
     <div class="nav-links">
       <a href="#agenda" data-i18n="nav.agenda">Agenda</a>
@@ -763,7 +763,7 @@ Copy the entire contents of the `<style>` block from `preview/mockup.html` (line
     <div class="foot-grid">
       <div class="foot-brand">
         <img src="logos/cavecavet.png" alt="" style="object-fit:cover;object-position:0 0;width:30px;height:30px;">
-        <span>Speakers Corner Termes Montbrió</span>
+        <span>Speaker's Corner Termes Montbrió</span>
       </div>
       <div class="foot-links">
         <a href="#agenda" data-i18n="nav.agenda">Agenda</a>

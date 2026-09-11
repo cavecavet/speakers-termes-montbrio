@@ -1,4 +1,4 @@
-# Speakers Corner Termes Montbrió
+# Speaker's Corner Termes Montbrió
 
 Lloc estàtic (sense build) del cicle de xerrades organitzat per l'Associació Cave
 Cavet i l'Hotel Termes Montbrió. Publicat a `speakers.cavecavet.org` via GitHub
