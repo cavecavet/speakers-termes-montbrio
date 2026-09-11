@@ -1,6 +1,6 @@
 const FORM_URLS = {
   // Reemplaça pels URLs reals de Nextcloud Forms o Google Forms quan existeixin.
-  speaker: "#",
+  speaker: "https://cloud.cavecavet.org/apps/forms/s/2LJptgTKoXNtGRTKfEZMqcjT",
   newsletter: "#",
   sesion_generica: "#"
 };
