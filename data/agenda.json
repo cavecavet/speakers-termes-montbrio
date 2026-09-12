@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-12T05:33:27Z",
+  "generated_at": "2026-09-12T07:31:36Z",
   "source": "https://cloud.cavecavet.org/remote.php/dav/public-calendars/RP5xH59a33ZBNwLx?export",
   "sesiones": [
     {
@@ -12,6 +12,17 @@
       "tipo": "gratuito",
       "form_url": "https://cloud.cavecavet.org/apps/forms/s/oBLXYkiQpTMzBtbyrHEDnnjJ",
       "form_id": 4
+    },
+    {
+      "id": "20261002-180000-cc-c2c4b02b@cavecavet.org",
+      "fecha": "2026-10-02",
+      "hora": "18:00",
+      "titulo": "De la piscina al mar: natació en aigües obertes, salut, llibertat, descobriment i respecte per la natura.",
+      "ponente": "Ana M. Nieto i Maribel Rodríguez",
+      "lugar": "Hotel Termes de Montbrió",
+      "tipo": "gratuito",
+      "form_url": null,
+      "form_id": null
     }
   ]
 }
