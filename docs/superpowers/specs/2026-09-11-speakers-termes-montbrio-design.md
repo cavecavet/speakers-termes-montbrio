@@ -136,11 +136,16 @@ JSON pla al repo.
       "titulo": "Beneficis de l'aigua i del mar per a la salut i el sistema nerviós",
       "ponente": "Mercè Milán",
       "lugar": "Hotel Termes de Montbrió",
-      "tipo": "gratuito"
+      "tipo": "gratuito",
+      "form_url": "https://cloud.cavecavet.org/apps/forms/s/<hash>"
     }
   ]
 }
 ```
+
+`form_url` és `null` fins que el sincronitzador li crea el formulari d'assistència
+(vegeu «Formularis d'assistència per sessió» més avall) — un cop assignat, mai es
+torna a sobreescriure per a aquest mateix `id` de sessió.
 
 Com que el calendari només guarda el text en un idioma, les sessions sincronitzades
 **no tenen versió `_ca`/`_es` separada**: es mostren amb el mateix text sigui quin
@@ -175,23 +180,65 @@ la secció mostra un missatge «Pròximament noves sessions» en lloc d'una llis
 
 ## Integració de formularis
 
-- `js/app.js` defineix `const FORM_URLS = { speaker: '#', newsletter: '#',
-  sesion_generica: '#' }` a la capçalera del fitxer, amb un comentari indicant que
-  cal substituir-ho per l'URL real de Nextcloud Forms o Google Forms.
-- Els botons/enllaços del DOM porten `data-form="<clau>"`; un petit listener
-  intercepta el clic i navega a `FORM_URLS[clau]` (obre en pestanya nova). Si l'URL
-  és `#`, es mostra un avís «Formulario en preparación» en lloc de navegar.
-- Es lliura per separat (fora del codi) una plantilla de preguntes suggerides per a
-  cada formulari («Quiero ser speaker» i «Inscripción a sesión»), perquè l'usuari les
-  creï manualment a Nextcloud Forms o Google Forms quan decideixi la plataforma.
+- `js/app.js` defineix `const FORM_URLS = { speaker: <URL real>, newsletter: '#',
+  sesion_generica: '#' }`. `speaker` ja apunta al formulari real de Nextcloud Forms
+  (`https://cloud.cavecavet.org/apps/forms/s/2LJptgTKoXNtGRTKfEZMqcjT`).
+- Els botons/enllaços del DOM porten `data-form="<clau>"` i, quan la sessió té un
+  formulari propi, també `data-url="<url>"`. Un listener (`wireFormLinks`)
+  intercepta el clic: usa `data-url` si existeix, si no cau a
+  `FORM_URLS[data-form]`; si el resultat és buit o `#`, mostra l'avís «Formulario en
+  preparación» en lloc de navegar.
+- Newsletter: encara pendent de crear (plantilla a `docs/formularis-plantilla.md`).
+
+### Formularis d'assistència per sessió — generats automàticament (decisió 2026-09-12)
+
+Cada sessió confirmada té el seu propi formulari d'inscripció a Nextcloud Forms,
+creat pel mateix `scripts/sync_agenda.py` en comptes de manualment:
+
+- **Plantilla**: formulari `id=3` a Nextcloud («Confirmar asistencia — [Evento] ·
+  Speaker's Corner», 5 preguntes: nom, correu, nombre d'assistents, telèfon
+  opcional, acceptació de política de privacitat). Es clona per API
+  (`POST /forms?fromId=3`) — mai es recreen les preguntes des de zero.
+- **Tancament automàtic**: `expires` = timestamp exacte d'inici de la xerrada
+  (Europe/Madrid) i `maxSubmissions = 140` — el formulari deixa d'acceptar
+  respostes en arribar qualsevol dels dos límits, el que passi primer. Cap
+  d'aquests dos camps apareix documentat a `docs/DataStructure.md` del propi
+  projecte Forms, però es va confirmar empíricament (GET real sobre un formulari
+  de prova) que `maxSubmissions` és un camp vàlid de l'API v3.
+- **Accés dels administradors**: grup Nextcloud `admins` (creat expressament,
+  membres inicials `admin` i `estela`) rep un share de tipus grup amb
+  `permissions: ["submit", "results"]` — **cal enviar els dos permisos junts**;
+  provar només `["results"]` retorna `400 Invalid permission given` (confirmat
+  contra la instància real).
+- **Idempotència**: `data/agenda.json` guarda `form_url` per sessió. En cada
+  sincronització, una sessió que ja tenia `form_url` el manté sense tornar a
+  trucar l'API (encara que altres camps seus hagin canviat); només es crea un
+  formulari nou per a un `id` de sessió que mai n'ha tingut cap.
+- **Degradació**: si `NEXTCLOUD_APP_PASSWORD` no existeix (execucions locals sense
+  el secret), `form_url` queda `null` i l'agenda es sincronitza igualment — no cal
+  el secret per treballar en local. Si la creació falla per a una sessió concreta,
+  es registra l'error i la resta de sessions es processen igual (no atura tot el
+  sync).
+- **Autenticació**: Basic Auth amb l'usuari `admin` i una contrasenya d'aplicació
+  (mai la contrasenya real) guardada com a secret de GitHub Actions
+  `NEXTCLOUD_APP_PASSWORD` — l'usuari la genera i la desa ell mateix
+  (`gh secret set`), mai passa per aquesta conversa ni pel codi.
+- **Backfill manual (2026-09-12)**: el formulari ja existent de Mercè Milán (creat
+  a mà abans d'aquesta automatització) es va actualitzar amb els mateixos límits
+  (`expires`, `maxSubmissions=140`, share al grup `admins`) i la seva `form_url`
+  real es va desar directament a `data/agenda.json`, perquè l'script no torni a
+  intentar crear-ne un altre per a aquest esdeveniment.
 
 ## Publicació
 
 - Repo `cavecavet/speakers-termes-montbrio` a GitHub (mateix patró que
-  `espigo-cavet`), branch `main`, GitHub Pages activat des de `main` arrel.
+  `espigo-cavet`), branch `main`, GitHub Pages activat des de `main` arrel. **Fet i
+  en producció** a https://speakers.cavecavet.org/.
 - `CNAME` amb el contingut `speakers.cavecavet.org`.
-- Cal que l'usuari afegeixi el registre DNS CNAME corresponent al seu proveïdor de
-  domini (`cavecavet.org`) — fora de l'abast d'aquest agent.
+- DNS: registre CNAME `speakers.cavecavet.org` → `cavecavet.github.io` a
+  Cloudflare, **proxied** (nube naranja) — seguint el mateix patró que `espigo` i
+  `exposicions`, els altres dos subdominis d'aquest compte que ja apunten a
+  `cavecavet.github.io`. Fet el 2026-09-11.
 
 ## Testing / verificació
 
@@ -199,7 +246,14 @@ la secció mostra un missatge «Pròximament noves sessions» en lloc d'una llis
 (pytest) sobre fixtures `.ics` locals (no contra el calendari real) cobrint: filtratge
 per `STATUS`, parsing de `Ponent:`/`Tema:` i el cas on la descripció no segueix el
 format, ordenació determinista, i sortida buida quan no hi ha esdeveniments
-confirmats.
+confirmats. La part de formularis té dues capes de test: les funcions pures
+(`build_form_title`, `build_form_description`, `format_session_datetime`,
+`session_price_label`, `session_expiry_timestamp`) i `attach_form_urls` (amb
+`ensure_attendance_form` mockejat, per verificar reutilització/creació/degradació
+sense tocar la xarxa); i un test d'`ensure_attendance_form` amb `urlopen` mockejat
+que verifica la seqüència exacta clona→PATCH→share públic→share de grup i els
+`body` enviats a cadascuna, contra el contracte real ja validat a mà (2026-09-12)
+sobre la instància de producció.
 
 **Lloc estàtic** — sense lògica de negoci complexa a testejar amb framework:
 verificació manual amb el navegador de vista prèvia (Browser pane) sobre `index.html`

@@ -39,6 +39,11 @@ function renderHero() {
   whoEl.textContent = next.ponente ? `${next.ponente} — ${next.lugar}` : next.lugar;
   ctaEl.style.display = "";
   ctaEl.dataset.form = "sesion_generica";
+  if (next.form_url) {
+    ctaEl.dataset.url = next.form_url;
+  } else {
+    delete ctaEl.dataset.url;
+  }
 }
 
 function renderAgenda() {
@@ -84,6 +89,9 @@ function renderAgenda() {
     link.className = "btn btn-outline";
     link.href = "#";
     link.dataset.form = "sesion_generica";
+    if (s.form_url) {
+      link.dataset.url = s.form_url;
+    }
     link.textContent = window.I18N.t("agenda.cta");
 
     row.appendChild(dateDiv);
@@ -99,7 +107,7 @@ function wireFormLinks(scope) {
   scope.querySelectorAll("[data-form]").forEach((el) => {
     el.addEventListener("click", (event) => {
       event.preventDefault();
-      const url = FORM_URLS[el.dataset.form];
+      const url = el.dataset.url || FORM_URLS[el.dataset.form];
       if (!url || url === "#") {
         alert(window.I18N.t("form.pending"));
         return;

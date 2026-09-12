@@ -1,3 +1,4 @@
+import json
 import sys
 from pathlib import Path
 
@@ -187,3 +188,200 @@ def test_build_agenda_wraps_sessions_with_metadata():
     assert agenda["generated_at"] == "2026-09-11T15:00:00Z"
     assert len(agenda["sesiones"]) == 1
     assert agenda["sesiones"][0]["id"] == "evt-confirmed-1@cavecavet.org"
+
+
+from sync_agenda import (
+    build_form_description,
+    build_form_title,
+    format_session_datetime,
+    session_expiry_timestamp,
+    session_price_label,
+)
+
+SAMPLE_SESSION = {
+    "id": "evt-1",
+    "fecha": "2026-10-02",
+    "hora": "17:00",
+    "titulo": "Beneficis de l'aigua i del mar per a la salut i el sistema nerviós",
+    "ponente": "Mercè Milán",
+    "lugar": "Hotel Termes de Montbrió",
+    "tipo": "gratuito",
+}
+
+
+def test_format_session_datetime():
+    assert format_session_datetime("2026-10-02", "17:00") == "02/10/2026 · 17:00"
+
+
+def test_session_price_label_gratuito():
+    assert session_price_label("gratuito") == "Gratuïta"
+
+
+def test_session_price_label_falls_back_to_raw_value_for_unknown_types():
+    assert session_price_label("15€") == "15€"
+
+
+def test_build_form_title_uses_speaker_name():
+    assert build_form_title(SAMPLE_SESSION) == "Confirmar asistencia — Speaker's Corner · Mercè Milán"
+
+
+def test_build_form_title_falls_back_to_event_title_without_a_speaker():
+    session = {**SAMPLE_SESSION, "ponente": ""}
+    assert (
+        build_form_title(session)
+        == "Confirmar asistencia — Speaker's Corner · "
+        "Beneficis de l'aigua i del mar per a la salut i el sistema nerviós"
+    )
+
+
+def test_build_form_description_fills_in_the_template_placeholders():
+    description = build_form_description(SAMPLE_SESSION)
+    assert "**Evento:** Beneficis de l'aigua i del mar per a la salut i el sistema nerviós" in description
+    assert "**Ponente:** Mercè Milán" in description
+    assert "**Fecha:** 02/10/2026 · 17:00" in description
+    assert "**Lugar:** Hotel Termes de Montbrió" in description
+    assert "**Precio:** Gratuïta" in description
+
+
+def test_build_form_description_shows_a_dash_when_speaker_is_missing():
+    session = {**SAMPLE_SESSION, "ponente": ""}
+    assert "**Ponente:** —" in build_form_description(session)
+
+
+def test_session_expiry_timestamp_matches_europe_madrid_start_time():
+    # 2026-10-02 17:00 Europe/Madrid (CEST, UTC+2) == 15:00 UTC == 1790953200.
+    assert session_expiry_timestamp("2026-10-02", "17:00") == 1790953200
+
+
+import sync_agenda
+from sync_agenda import attach_form_urls
+
+
+def test_attach_form_urls_carries_over_an_existing_url_without_calling_the_api(monkeypatch):
+    called = False
+
+    def fake_ensure(session, app_password):
+        nonlocal called
+        called = True
+        return "https://should-not-be-called"
+
+    monkeypatch.setattr(sync_agenda, "ensure_attendance_form", fake_ensure)
+
+    sessions = [{**SAMPLE_SESSION, "form_url": None}]
+    old_by_id = {"evt-1": {**SAMPLE_SESSION, "form_url": "https://cloud.cavecavet.org/apps/forms/s/existing"}}
+
+    attach_form_urls(sessions, old_by_id, app_password="dummy")
+
+    assert sessions[0]["form_url"] == "https://cloud.cavecavet.org/apps/forms/s/existing"
+    assert called is False
+
+
+def test_attach_form_urls_creates_a_form_for_a_session_without_one(monkeypatch):
+    calls = []
+
+    def fake_ensure(session, app_password):
+        calls.append((session["id"], app_password))
+        return "https://cloud.cavecavet.org/apps/forms/s/brand-new"
+
+    monkeypatch.setattr(sync_agenda, "ensure_attendance_form", fake_ensure)
+
+    sessions = [dict(SAMPLE_SESSION)]
+    attach_form_urls(sessions, old_by_id={}, app_password="secret123")
+
+    assert sessions[0]["form_url"] == "https://cloud.cavecavet.org/apps/forms/s/brand-new"
+    assert calls == [("evt-1", "secret123")]
+
+
+def test_attach_form_urls_skips_creation_without_an_app_password(monkeypatch):
+    def fake_ensure(session, app_password):
+        raise AssertionError("should never be called without an app password")
+
+    monkeypatch.setattr(sync_agenda, "ensure_attendance_form", fake_ensure)
+
+    sessions = [dict(SAMPLE_SESSION)]
+    attach_form_urls(sessions, old_by_id={}, app_password=None)
+
+    assert sessions[0]["form_url"] is None
+
+
+def test_attach_form_urls_logs_and_continues_when_creation_fails(monkeypatch, capsys):
+    def failing_ensure(session, app_password):
+        raise RuntimeError("Nextcloud is down")
+
+    monkeypatch.setattr(sync_agenda, "ensure_attendance_form", failing_ensure)
+
+    sessions = [dict(SAMPLE_SESSION)]
+    attach_form_urls(sessions, old_by_id={}, app_password="secret123")
+
+    assert sessions[0]["form_url"] is None
+    assert "Nextcloud is down" in capsys.readouterr().out
+
+
+from sync_agenda import ensure_attendance_form
+
+
+class FakeResponse:
+    def __init__(self, payload):
+        self._body = json.dumps({"ocs": {"data": payload}}).encode("utf-8")
+
+    def read(self):
+        return self._body
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        return False
+
+
+def test_ensure_attendance_form_clones_configures_and_shares_in_order(monkeypatch):
+    responses = [
+        {"id": 42},  # clone
+        42,  # patch (form id echoed back)
+        {"id": 1, "shareType": 3, "shareWith": "pub1234567890ab"},  # public link share
+        {"id": 2, "shareType": 1, "shareWith": "admins"},  # admins group share
+    ]
+    calls = []
+
+    def fake_urlopen(request, timeout=30):
+        calls.append(
+            {
+                "url": request.full_url,
+                "method": request.get_method(),
+                "body": json.loads(request.data) if request.data else None,
+                "auth": request.get_header("Authorization"),
+            }
+        )
+        return FakeResponse(responses[len(calls) - 1])
+
+    monkeypatch.setattr(sync_agenda.urllib.request, "urlopen", fake_urlopen)
+
+    url = ensure_attendance_form(SAMPLE_SESSION, app_password="s3cr3t")
+
+    assert url == "https://cloud.cavecavet.org/apps/forms/s/pub1234567890ab"
+    assert len(calls) == 4
+
+    clone_call, patch_call, link_share_call, group_share_call = calls
+
+    assert clone_call["method"] == "POST"
+    assert clone_call["url"].endswith("/forms?fromId=3")
+    assert clone_call["auth"].startswith("Basic ")
+
+    assert patch_call["method"] == "PATCH"
+    assert patch_call["url"].endswith("/forms/42")
+    kv = patch_call["body"]["keyValuePairs"]
+    assert kv["title"] == "Confirmar asistencia — Speaker's Corner · Mercè Milán"
+    assert kv["expires"] == 1790953200
+    assert kv["maxSubmissions"] == 140
+
+    assert link_share_call["method"] == "POST"
+    assert link_share_call["url"].endswith("/forms/42/shares")
+    assert link_share_call["body"] == {"shareType": 3, "permissions": ["submit"]}
+
+    assert group_share_call["method"] == "POST"
+    assert group_share_call["url"].endswith("/forms/42/shares")
+    assert group_share_call["body"] == {
+        "shareType": 1,
+        "shareWith": "admins",
+        "permissions": ["submit", "results"],
+    }

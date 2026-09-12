@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-11T16:13:16Z",
+  "generated_at": "2026-09-12T04:19:13Z",
   "source": "https://cloud.cavecavet.org/remote.php/dav/public-calendars/RP5xH59a33ZBNwLx?export",
   "sesiones": [
     {
@@ -9,7 +9,8 @@
       "titulo": "Beneficis de l'aigua i del mar per a la salut i el sistema nerviós. Recepta blava i Blue Mind.",
       "ponente": "Mercè Milán",
       "lugar": "Hotel Termes de Montbrió",
-      "tipo": "gratuito"
+      "tipo": "gratuito",
+      "form_url": "https://cloud.cavecavet.org/apps/forms/s/oBLXYkiQpTMzBtbyrHEDnnjJ"
     }
   ]
 }

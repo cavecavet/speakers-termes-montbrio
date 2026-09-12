@@ -1,8 +1,8 @@
 # Speaker's Corner Termes Montbrió
 
 Lloc estàtic (sense build) del cicle de xerrades organitzat per l'Associació Cave
-Cavet i l'Hotel Termes Montbrió. Publicat a `speakers.cavecavet.org` via GitHub
-Pages.
+Cavet i l'Hotel Termes Montbrió. Publicat a **https://speakers.cavecavet.org/** via
+GitHub Pages.
 
 - Disseny i decisions: `docs/superpowers/specs/2026-09-11-speakers-termes-montbrio-design.md`
 - L'agenda (`data/agenda.json`) es genera automàticament — **no s'edita a mà**. La
@@ -32,7 +32,34 @@ Al calendari Nextcloud, per a cada xerrada:
 Les sessions amb data anterior a avui desapareixen soles de l'agenda (no cal
 esborrar-les del calendari).
 
-- Sincronització manual (per provar-la fora del cron de GitHub Actions):
+## Formularis d'assistència: es creen sols
+
+En confirmar una sessió (pas 2 de dalt), el mateix sincronitzador li crea
+automàticament un formulari d'assistència a Nextcloud Forms — **no cal crear-lo a
+mà**:
+
+- Es clona la plantilla «Confirmar asistencia — [Evento] · Speaker's Corner»
+  (formulari amb id `3` a Nextcloud; si mai canvies les seves preguntes, els
+  formularis nous ja les heretaran).
+- El títol i la descripció es re-omplen amb l'esdeveniment, ponent, data, lloc i
+  preu reals.
+- Es tanca sol en arribar a **140 inscrits** o a l'hora d'inici de la xerrada (el
+  que passi abans).
+- El grup Nextcloud **`admins`** (Ajustes → Usuarios) pot veure sempre les
+  respostes a la pestanya «Respuestas» del formulari, sense necessitat de ser-ne
+  el propietari — afegeix-hi qui calgui des d'allà.
+- L'URL de cada formulari es guarda a `data/agenda.json` (camp `form_url` de la
+  sessió) i mai es torna a crear un segon formulari per al mateix esdeveniment.
+- Si la creació falla per a una sessió concreta (Nextcloud caigut, etc.), queda
+  registrat als logs del workflow i aquella targeta mostra l'avís «en preparació»
+  fins al proper cicle de sincronització — la resta de l'agenda es publica igual.
+
+Perquè això funcioni cal el secret de GitHub Actions `NEXTCLOUD_APP_PASSWORD`
+(veure més avall).
+
+- Sincronització manual (per provar-la fora del cron de GitHub Actions; sense la
+  variable `NEXTCLOUD_APP_PASSWORD` no crea formularis nous, però sí actualitza
+  l'agenda):
   ```bash
   cd scripts
   python3 -m venv .venv && source .venv/bin/activate
@@ -42,10 +69,20 @@ esborrar-les del calendari).
 - Tests de l'script de sincronització: `pytest scripts/tests`
 - Previsualitzar el lloc: obrir `index.html` directament al navegador, o servir la
   carpeta amb `python3 -m http.server` des de l'arrel del repo.
-- Formularis (inscripció/newsletter): encara no creats. Plantilla de preguntes a
-  `docs/formularis-plantilla.md` — un cop creats a Nextcloud Forms o Google Forms,
-  enganxa'n l'URL a `FORM_URLS` dins `js/app.js`.
-- **Pendent:** el registre DNS CNAME de `speakers.cavecavet.org` cap a
-  `cavecavet.github.io` encara s'ha d'afegir on es gestioni el domini
-  `cavecavet.org`; fins que no existeixi, el lloc només és accessible a
-  `https://cavecavet.github.io/speakers-termes-montbrio/`.
+- Formulari «Vull ser speaker»: ja enllaçat a `js/app.js` (`FORM_URLS.speaker`).
+  Newsletter: encara pendent — plantilla de preguntes a
+  `docs/formularis-plantilla.md`.
+
+## Secret `NEXTCLOUD_APP_PASSWORD`
+
+Necessari perquè el workflow de sincronització pugui crear formularis a Nextcloud
+en nom de `admin`:
+
+1. Nextcloud → Ajustes personales → Seguridad → «Crear nueva contraseña de
+   aplicación».
+2. Al repo de GitHub: `gh secret set NEXTCLOUD_APP_PASSWORD` (t'ho demanarà per
+   `stdin`), o Settings → Secrets and variables → Actions → New repository
+   secret.
+
+Sense aquest secret, la sincronització de l'agenda continua funcionant amb
+normalitat — simplement no crea formularis nous fins que el secret existeixi.
