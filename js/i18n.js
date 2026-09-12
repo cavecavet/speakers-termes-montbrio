@@ -1,7 +1,7 @@
 const DICT = {
   ca: {
     "nav.tag": "Termes Montbrió · Cave Cavet", "nav.agenda": "Agenda", "nav.speaker": "Vull ser speaker", "nav.videos": "Vídeos", "nav.contact": "Contacte",
-    "hero.eyebrow": "Hotel Termes Montbrió · Associació Cave Cavet",
+    "hero.eyebrow": "Hotel Termes Montbrió\nAssociació Cave Cavet",
     "hero.title": "Xerrades i tallers per pensar-hi, cada mes",
     "hero.body": "Un espai obert de conversa, aprenentatge i comunitat entre les termes de Montbrió. La majoria de sessions són gratuïtes, amb inscripció en línia.",
     "hero.cta1": "Veure l'agenda", "hero.cta2": "Vull ser speaker",
@@ -25,7 +25,7 @@ const DICT = {
   },
   es: {
     "nav.tag": "Termes Montbrió · Cave Cavet", "nav.agenda": "Agenda", "nav.speaker": "Quiero ser speaker", "nav.videos": "Vídeos", "nav.contact": "Contacto",
-    "hero.eyebrow": "Hotel Termes Montbrió · Associació Cave Cavet",
+    "hero.eyebrow": "Hotel Termes Montbrió\nAssociació Cave Cavet",
     "hero.title": "Charlas y talleres para pensar, cada mes",
     "hero.body": "Un espacio abierto de conversación, aprendizaje y comunidad en las termas de Montbrió. La mayoría de las sesiones son gratuitas, con inscripción en línea.",
     "hero.cta1": "Ver la agenda", "hero.cta2": "Quiero ser speaker",
