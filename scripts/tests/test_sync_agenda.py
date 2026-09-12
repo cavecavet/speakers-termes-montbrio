@@ -358,6 +358,7 @@ def test_ensure_attendance_form_clones_configures_and_shares_in_order(monkeypatc
                 "method": request.get_method(),
                 "body": json.loads(request.data) if request.data else None,
                 "auth": request.get_header("Authorization"),
+                "user_agent": request.get_header("User-agent"),
             }
         )
         return FakeResponse(responses[len(calls) - 1])
@@ -369,6 +370,10 @@ def test_ensure_attendance_form_clones_configures_and_shares_in_order(monkeypatc
     assert form_id == 42
     assert url == "https://cloud.cavecavet.org/apps/forms/s/pub1234567890ab"
     assert len(calls) == 4
+    # Cloudflare 403s every endpoint on this domain (not just the calendar
+    # export) when it sees urllib's default User-Agent -- regression-guard it
+    # on every one of the four calls in this sequence.
+    assert all(call["user_agent"] == "Mozilla/5.0" for call in calls)
 
     clone_call, patch_call, link_share_call, group_share_call = calls
 

@@ -18,6 +18,10 @@ OUTPUT_PATH = Path(__file__).resolve().parent.parent / "data" / "agenda.json"
 
 NEXTCLOUD_BASE = "https://cloud.cavecavet.org"
 NEXTCLOUD_USER = "admin"
+# Cloudflare (fronting cloud.cavecavet.org) returns 403 to urllib's default
+# "Python-urllib/x.y" User-Agent on every endpoint, not just the calendar
+# export -- a normal browser-like one passes through everywhere.
+USER_AGENT = "Mozilla/5.0"
 # "Confirmar asistencia — [Evento] · Speaker's Corner" — cloned per newly
 # confirmed session instead of recreated from scratch, so any future tweak to
 # its questions only has to happen once, in Nextcloud.
@@ -101,9 +105,7 @@ def build_agenda(
 
 
 def fetch_ics(url: str) -> bytes:
-    # Cloudflare (fronting cloud.cavecavet.org) returns 403 to urllib's default
-    # "Python-urllib/x.y" User-Agent; a normal browser-like one passes through.
-    request = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+    request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
     with urllib.request.urlopen(request, timeout=30) as response:
         return response.read()
 
@@ -152,6 +154,7 @@ def nc_request(method: str, path: str, app_password: str, body: dict | None = No
     request = urllib.request.Request(
         f"{NEXTCLOUD_BASE}/ocs/v2.php/apps/forms/api/v3{path}", data=data, method=method
     )
+    request.add_header("User-Agent", USER_AGENT)
     request.add_header("OCS-APIRequest", "true")
     request.add_header("Accept", "application/json")
     if data is not None:
