@@ -137,7 +137,8 @@ JSON pla al repo.
       "ponente": "Mercè Milán",
       "lugar": "Hotel Termes de Montbrió",
       "tipo": "gratuito",
-      "form_url": "https://cloud.cavecavet.org/apps/forms/s/<hash>"
+      "form_url": "https://cloud.cavecavet.org/apps/forms/s/<hash>",
+      "form_id": 4
     }
   ]
 }
@@ -227,7 +228,42 @@ creat pel mateix `scripts/sync_agenda.py` en comptes de manualment:
   a mà abans d'aquesta automatització) es va actualitzar amb els mateixos límits
   (`expires`, `maxSubmissions=140`, share al grup `admins`) i la seva `form_url`
   real es va desar directament a `data/agenda.json`, perquè l'script no torni a
-  intentar crear-ne un altre per a aquest esdeveniment.
+  intentar crear-ne un altre per a aquest esdeveniment. `data/agenda.json` també
+  guarda `form_id` (l'id numèric intern del formulari, no només l'`hash` públic)
+  perquè els canvis de data i les cancel·lacions (secció següent) puguin trobar
+  quin formulari cal tocar.
+
+### Canvis de data i cancel·lacions (decisió 2026-09-12)
+
+En cada sincronització, abans de tocar `form_url`/`form_id`, es comparen les
+sessions noves contra les de l'execució anterior (`old_by_id`, per `id` de
+calendari — estable encara que canviïn altres camps):
+
+- **Canvi de data/hora** (mateix `id`, `fecha`/`hora` diferents, i la sessió
+  antiga ja tenia `form_id`): `PATCH` al formulari amb `title`/`description`
+  (recalculats amb les dades noves) i `expires` (nou timestamp); si hi ha
+  `SMTP_PASSWORD`, es descarreguen els correus de les respostes ja rebudes
+  (`GET /forms/{id}/submissions`, buscant la pregunta de text «Correo
+  electrónico») i se'ls envia un avís de canvi de data (un sol email, en
+  `Bcc`, perquè els inscrits no es vegin les adreces entre ells).
+- **Cancel·lació**: un `id` que tenia `form_id` a l'execució anterior i ha
+  desaparegut de la llista nova de sessions **confirmades i futures**. Es tanca
+  el formulari (`PATCH keyValuePairs: {state: 1}` — Cerrar formulario, no
+  s'esborra, es conserven les respostes) i, amb `SMTP_PASSWORD`, s'avisa per
+  correu els ja inscrits.
+- **Distinció clau**: una sessió que simplement ha vençut (la seva pròpia
+  `fecha` ja és anterior a `today`) **no** es tracta com a cancel·lació — és
+  el comportament normal de `parse_sessions` filtrant sessions passades. Només
+  compta com a cancel·lació una sessió que encara era futura i ha desaparegut
+  (esborrada o desconfirmada al calendari).
+- Cap d'aquestes dues accions requereix `SMTP_PASSWORD` per funcionar — sense
+  aquest secret, el formulari s'actualitza/tanca igualment, només se salta
+  l'enviament del correu.
+- **SMTP**: es reutilitza el mateix servidor de sortida ja configurat a
+  Nextcloud (Ajustes básicos → Servidor de correo electrónico:
+  `smtp.gmail.com:465`, usuari `associaciocavecavet@gmail.com`) — host, port i
+  usuari són constants al codi (no són secrets); només la contrasenya viatja
+  com a secret de GitHub Actions `SMTP_PASSWORD`, mai per aquesta conversa.
 
 ## Publicació
 

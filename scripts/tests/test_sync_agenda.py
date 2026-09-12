@@ -263,15 +263,22 @@ def test_attach_form_urls_carries_over_an_existing_url_without_calling_the_api(m
     def fake_ensure(session, app_password):
         nonlocal called
         called = True
-        return "https://should-not-be-called"
+        return 0, "https://should-not-be-called"
 
     monkeypatch.setattr(sync_agenda, "ensure_attendance_form", fake_ensure)
 
     sessions = [{**SAMPLE_SESSION, "form_url": None}]
-    old_by_id = {"evt-1": {**SAMPLE_SESSION, "form_url": "https://cloud.cavecavet.org/apps/forms/s/existing"}}
+    old_by_id = {
+        "evt-1": {
+            **SAMPLE_SESSION,
+            "form_id": 7,
+            "form_url": "https://cloud.cavecavet.org/apps/forms/s/existing",
+        }
+    }
 
     attach_form_urls(sessions, old_by_id, app_password="dummy")
 
+    assert sessions[0]["form_id"] == 7
     assert sessions[0]["form_url"] == "https://cloud.cavecavet.org/apps/forms/s/existing"
     assert called is False
 
@@ -281,13 +288,14 @@ def test_attach_form_urls_creates_a_form_for_a_session_without_one(monkeypatch):
 
     def fake_ensure(session, app_password):
         calls.append((session["id"], app_password))
-        return "https://cloud.cavecavet.org/apps/forms/s/brand-new"
+        return 99, "https://cloud.cavecavet.org/apps/forms/s/brand-new"
 
     monkeypatch.setattr(sync_agenda, "ensure_attendance_form", fake_ensure)
 
     sessions = [dict(SAMPLE_SESSION)]
     attach_form_urls(sessions, old_by_id={}, app_password="secret123")
 
+    assert sessions[0]["form_id"] == 99
     assert sessions[0]["form_url"] == "https://cloud.cavecavet.org/apps/forms/s/brand-new"
     assert calls == [("evt-1", "secret123")]
 
@@ -356,8 +364,9 @@ def test_ensure_attendance_form_clones_configures_and_shares_in_order(monkeypatc
 
     monkeypatch.setattr(sync_agenda.urllib.request, "urlopen", fake_urlopen)
 
-    url = ensure_attendance_form(SAMPLE_SESSION, app_password="s3cr3t")
+    form_id, url = ensure_attendance_form(SAMPLE_SESSION, app_password="s3cr3t")
 
+    assert form_id == 42
     assert url == "https://cloud.cavecavet.org/apps/forms/s/pub1234567890ab"
     assert len(calls) == 4
 
@@ -385,3 +394,276 @@ def test_ensure_attendance_form_clones_configures_and_shares_in_order(monkeypatc
         "shareWith": "admins",
         "permissions": ["submit", "results"],
     }
+
+
+from sync_agenda import (
+    build_cancellation_email,
+    build_date_change_email,
+    find_email_question_id,
+    fetch_submission_emails,
+    handle_cancellation,
+    handle_date_change,
+    send_email,
+    sync_changes_and_cancellations,
+)
+
+QUESTIONS_WITH_EMAIL = [
+    {"id": 10, "text": "Nombre y apellidos"},
+    {"id": 11, "text": "Correo electrónico"},
+    {"id": 12, "text": "Número de asistentes (te incluye a ti)"},
+]
+
+
+def test_find_email_question_id_matches_by_text():
+    assert find_email_question_id(QUESTIONS_WITH_EMAIL) == 11
+
+
+def test_find_email_question_id_returns_none_when_absent():
+    assert find_email_question_id([{"id": 1, "text": "Nombre y apellidos"}]) is None
+
+
+def test_fetch_submission_emails_extracts_the_email_answer_per_submission(monkeypatch):
+    def fake_urlopen(request, timeout=30):
+        assert request.get_method() == "GET"
+        assert request.full_url.endswith("/forms/42/submissions")
+        payload = {
+            "ocs": {
+                "data": {
+                    "questions": QUESTIONS_WITH_EMAIL,
+                    "submissions": [
+                        {
+                            "id": 1,
+                            "answers": [
+                                {"questionId": 10, "text": "Ana"},
+                                {"questionId": 11, "text": "ana@example.org"},
+                            ],
+                        },
+                        {
+                            "id": 2,
+                            "answers": [
+                                {"questionId": 10, "text": "Bru"},
+                                {"questionId": 11, "text": "bru@example.org"},
+                            ],
+                        },
+                    ],
+                }
+            }
+        }
+        return FakeResponse(payload["ocs"]["data"])
+
+    monkeypatch.setattr(sync_agenda.urllib.request, "urlopen", fake_urlopen)
+
+    assert fetch_submission_emails(42, "s3cr3t") == ["ana@example.org", "bru@example.org"]
+
+
+def test_fetch_submission_emails_returns_empty_list_without_an_email_question(monkeypatch):
+    def fake_urlopen(request, timeout=30):
+        payload = {"questions": [{"id": 10, "text": "Nombre y apellidos"}], "submissions": []}
+        return FakeResponse(payload)
+
+    monkeypatch.setattr(sync_agenda.urllib.request, "urlopen", fake_urlopen)
+
+    assert fetch_submission_emails(42, "s3cr3t") == []
+
+
+class FakeSMTP:
+    instances = []
+
+    def __init__(self, host, port, timeout=30):
+        self.host = host
+        self.port = port
+        self.logged_in = None
+        self.sent = []
+        FakeSMTP.instances.append(self)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        return False
+
+    def login(self, user, password):
+        self.logged_in = (user, password)
+
+    def send_message(self, message):
+        self.sent.append(message)
+
+
+def test_send_email_logs_in_and_bccs_every_recipient(monkeypatch):
+    FakeSMTP.instances.clear()
+    monkeypatch.setattr(sync_agenda.smtplib, "SMTP_SSL", FakeSMTP)
+
+    send_email(["a@example.org", "b@example.org"], "Asunto", "Cuerpo", "mypassword")
+
+    assert len(FakeSMTP.instances) == 1
+    smtp = FakeSMTP.instances[0]
+    assert smtp.host == "smtp.gmail.com"
+    assert smtp.port == 465
+    assert smtp.logged_in == ("associaciocavecavet@gmail.com", "mypassword")
+    assert len(smtp.sent) == 1
+    message = smtp.sent[0]
+    assert message["Subject"] == "Asunto"
+    assert message["To"] == "associaciocavecavet@gmail.com"
+    assert message["Bcc"] == "a@example.org, b@example.org"
+
+
+def test_send_email_does_nothing_without_recipients(monkeypatch):
+    FakeSMTP.instances.clear()
+    monkeypatch.setattr(sync_agenda.smtplib, "SMTP_SSL", FakeSMTP)
+
+    send_email([], "Asunto", "Cuerpo", "mypassword")
+
+    assert FakeSMTP.instances == []
+
+
+OLD_SESSION = {**SAMPLE_SESSION, "form_id": 42, "form_url": "https://cloud.cavecavet.org/apps/forms/s/old"}
+
+
+def test_build_date_change_email_mentions_old_and_new_datetime():
+    new_session = {**OLD_SESSION, "fecha": "2026-11-01", "hora": "20:00"}
+    subject, body = build_date_change_email(new_session, OLD_SESSION)
+    assert OLD_SESSION["titulo"] in subject
+    assert "02/10/2026 · 17:00" in body
+    assert "01/11/2026 · 20:00" in body
+
+
+def test_build_cancellation_email_mentions_the_original_datetime():
+    subject, body = build_cancellation_email(OLD_SESSION)
+    assert OLD_SESSION["titulo"] in subject
+    assert "02/10/2026 · 17:00" in body
+
+
+def test_handle_date_change_patches_the_form_and_emails_respondents(monkeypatch):
+    patch_calls = []
+
+    def fake_nc_request(method, path, app_password, body=None):
+        if method == "PATCH":
+            patch_calls.append((path, body))
+            return 42
+        if method == "GET":
+            return {
+                "questions": QUESTIONS_WITH_EMAIL,
+                "submissions": [{"answers": [{"questionId": 11, "text": "ana@example.org"}]}],
+            }
+        raise AssertionError(f"unexpected method {method}")
+
+    monkeypatch.setattr(sync_agenda, "nc_request", fake_nc_request)
+
+    sent = []
+    monkeypatch.setattr(
+        sync_agenda, "send_email", lambda to, subject, body, pw: sent.append((to, subject, pw))
+    )
+
+    new_session = {**OLD_SESSION, "fecha": "2026-11-01", "hora": "20:00"}
+    handle_date_change(new_session, OLD_SESSION, "app-pw", "smtp-pw")
+
+    assert len(patch_calls) == 1
+    path, body = patch_calls[0]
+    assert path == "/forms/42"
+    assert body["keyValuePairs"]["expires"] == session_expiry_timestamp("2026-11-01", "20:00")
+    assert sent == [(["ana@example.org"], sent[0][1], "smtp-pw")]
+
+
+def test_handle_date_change_skips_email_without_an_smtp_password(monkeypatch):
+    monkeypatch.setattr(sync_agenda, "nc_request", lambda *a, **kw: 42)
+    monkeypatch.setattr(
+        sync_agenda, "fetch_submission_emails", lambda *a, **kw: (_ for _ in ()).throw(
+            AssertionError("should not fetch submissions without an smtp password")
+        )
+    )
+    new_session = {**OLD_SESSION, "fecha": "2026-11-01", "hora": "20:00"}
+    handle_date_change(new_session, OLD_SESSION, "app-pw", smtp_password=None)
+
+
+def test_handle_date_change_does_nothing_without_a_form_id():
+    session = {**SAMPLE_SESSION, "form_id": None}
+    handle_date_change(session, OLD_SESSION, "app-pw", "smtp-pw")  # must not raise
+
+
+def test_handle_cancellation_closes_the_form_and_emails_respondents(monkeypatch):
+    patch_calls = []
+
+    def fake_nc_request(method, path, app_password, body=None):
+        if method == "PATCH":
+            patch_calls.append((path, body))
+            return 42
+        if method == "GET":
+            return {
+                "questions": QUESTIONS_WITH_EMAIL,
+                "submissions": [{"answers": [{"questionId": 11, "text": "bru@example.org"}]}],
+            }
+        raise AssertionError(f"unexpected method {method}")
+
+    monkeypatch.setattr(sync_agenda, "nc_request", fake_nc_request)
+    sent = []
+    monkeypatch.setattr(
+        sync_agenda, "send_email", lambda to, subject, body, pw: sent.append((to, subject, pw))
+    )
+
+    handle_cancellation(OLD_SESSION, "app-pw", "smtp-pw")
+
+    assert patch_calls == [("/forms/42", {"keyValuePairs": {"state": 1}})]
+    assert sent == [(["bru@example.org"], sent[0][1], "smtp-pw")]
+
+
+def test_sync_changes_and_cancellations_detects_a_date_change(monkeypatch):
+    calls = []
+    monkeypatch.setattr(
+        sync_agenda, "handle_date_change", lambda session, old, ap, sp: calls.append(("change", session["id"]))
+    )
+    monkeypatch.setattr(
+        sync_agenda, "handle_cancellation", lambda old, ap, sp: calls.append(("cancel", old["id"]))
+    )
+
+    new_session = {**OLD_SESSION, "fecha": "2026-11-01"}
+    sync_changes_and_cancellations(
+        [new_session], old_by_id={"evt-1": OLD_SESSION}, today="2026-09-12",
+        app_password="app-pw", smtp_password="smtp-pw",
+    )
+
+    assert calls == [("change", "evt-1")]
+
+
+def test_sync_changes_and_cancellations_detects_a_still_upcoming_cancellation(monkeypatch):
+    calls = []
+    monkeypatch.setattr(sync_agenda, "handle_date_change", lambda *a, **kw: calls.append(("change",)))
+    monkeypatch.setattr(
+        sync_agenda, "handle_cancellation", lambda old, ap, sp: calls.append(("cancel", old["id"]))
+    )
+
+    sync_changes_and_cancellations(
+        [], old_by_id={"evt-1": OLD_SESSION}, today="2026-09-12",
+        app_password="app-pw", smtp_password="smtp-pw",
+    )
+
+    assert calls == [("cancel", "evt-1")]
+
+
+def test_sync_changes_and_cancellations_does_not_treat_a_past_session_as_cancelled(monkeypatch):
+    calls = []
+    monkeypatch.setattr(sync_agenda, "handle_date_change", lambda *a, **kw: calls.append(("change",)))
+    monkeypatch.setattr(sync_agenda, "handle_cancellation", lambda *a, **kw: calls.append(("cancel",)))
+
+    # OLD_SESSION's own fecha (2026-10-02) is before "today" -> it aged out on
+    # its own, this is NOT a cancellation.
+    sync_changes_and_cancellations(
+        [], old_by_id={"evt-1": OLD_SESSION}, today="2026-10-03",
+        app_password="app-pw", smtp_password="smtp-pw",
+    )
+
+    assert calls == []
+
+
+def test_sync_changes_and_cancellations_skips_everything_without_an_app_password(monkeypatch):
+    monkeypatch.setattr(
+        sync_agenda, "handle_date_change", lambda *a, **kw: (_ for _ in ()).throw(AssertionError())
+    )
+    monkeypatch.setattr(
+        sync_agenda, "handle_cancellation", lambda *a, **kw: (_ for _ in ()).throw(AssertionError())
+    )
+
+    new_session = {**OLD_SESSION, "fecha": "2026-11-01"}
+    sync_changes_and_cancellations(
+        [new_session], old_by_id={"evt-1": OLD_SESSION}, today="2026-09-12",
+        app_password=None, smtp_password="smtp-pw",
+    )  # must not raise

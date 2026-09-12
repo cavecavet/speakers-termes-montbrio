@@ -3,9 +3,11 @@
 import base64
 import json
 import os
+import smtplib
 import sys
 import urllib.request
 from datetime import datetime, timezone
+from email.message import EmailMessage
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -22,6 +24,14 @@ NEXTCLOUD_USER = "admin"
 TEMPLATE_FORM_ID = 3
 ADMINS_GROUP = "admins"
 MAX_SUBMISSIONS = 140
+EMAIL_QUESTION_TEXT = "Correo electrónico"
+
+# Same outgoing mail server already configured in Nextcloud (Ajustes básicos ->
+# Servidor de correo electrónico) -- only the password is a secret.
+SMTP_HOST = "smtp.gmail.com"
+SMTP_PORT = 465
+SMTP_USER = "associaciocavecavet@gmail.com"
+SMTP_FROM = "associaciocavecavet@gmail.com"
 
 
 def parse_description(description: str) -> tuple[str, str]:
@@ -153,10 +163,11 @@ def nc_request(method: str, path: str, app_password: str, body: dict | None = No
     return payload["ocs"]["data"]
 
 
-def ensure_attendance_form(session: dict, app_password: str) -> str:
-    """Clone the template attendance form for `session` and return its public
-    submission URL — closed at 140 responses or the talk's start time,
-    whichever comes first, with the "admins" group able to see who signed up.
+def ensure_attendance_form(session: dict, app_password: str) -> tuple[int, str]:
+    """Clone the template attendance form for `session` and return
+    `(form_id, public_submission_url)` — closed at 140 responses or the talk's
+    start time, whichever comes first, with the "admins" group able to see
+    who signed up.
     """
     cloned = nc_request("POST", f"/forms?fromId={TEMPLATE_FORM_ID}", app_password)
     form_id = cloned["id"]
@@ -185,16 +196,16 @@ def ensure_attendance_form(session: dict, app_password: str) -> str:
         app_password,
         {"shareType": 1, "shareWith": ADMINS_GROUP, "permissions": ["submit", "results"]},
     )
-    return f"{NEXTCLOUD_BASE}/apps/forms/s/{link_share['shareWith']}"
+    return form_id, f"{NEXTCLOUD_BASE}/apps/forms/s/{link_share['shareWith']}"
 
 
 def attach_form_urls(sessions: list[dict], old_by_id: dict, app_password: str | None) -> None:
-    """Give every session a `form_url`, mutating each dict in place.
+    """Give every session a `form_id`/`form_url`, mutating each dict in place.
 
-    Reuses a session's existing form_url when carried over from the previous
-    run (never creates a second form for the same session id). Otherwise
-    creates a new attendance form via the Nextcloud Forms API — skipped
-    entirely when `app_password` is falsy (e.g. local runs without the
+    Reuses a session's existing form when carried over from the previous run
+    (never creates a second form for the same session id). Otherwise creates a
+    new attendance form via the Nextcloud Forms API — skipped entirely when
+    `app_password` is falsy (e.g. local runs without the
     NEXTCLOUD_APP_PASSWORD secret). A per-session failure is logged and leaves
     that session's form_url as None (the site falls back to its "pending"
     message) rather than aborting the whole sync.
@@ -203,20 +214,168 @@ def attach_form_urls(sessions: list[dict], old_by_id: dict, app_password: str | 
         existing = old_by_id.get(session["id"])
         if existing and existing.get("form_url"):
             session["form_url"] = existing["form_url"]
+            session["form_id"] = existing.get("form_id")
             continue
         session["form_url"] = None
+        session["form_id"] = None
         if not app_password:
             continue
         try:
-            session["form_url"] = ensure_attendance_form(session, app_password)
+            form_id, url = ensure_attendance_form(session, app_password)
+            session["form_id"] = form_id
+            session["form_url"] = url
         except Exception as error:
             print(f"No s'ha pogut crear el formulari d'assistència per a {session['id']}: {error}")
+
+
+def find_email_question_id(questions: list[dict]) -> int | None:
+    for question in questions:
+        if question.get("text") == EMAIL_QUESTION_TEXT:
+            return question["id"]
+    return None
+
+
+def fetch_submission_emails(form_id: int, app_password: str) -> list[str]:
+    """Return every respondent's email address already recorded on the form."""
+    data = nc_request("GET", f"/forms/{form_id}/submissions", app_password)
+    email_question_id = find_email_question_id(data.get("questions", []))
+    if email_question_id is None:
+        return []
+    emails = []
+    for submission in data.get("submissions", []):
+        for answer in submission.get("answers", []):
+            if answer.get("questionId") == email_question_id and answer.get("text"):
+                emails.append(answer["text"])
+    return emails
+
+
+def send_email(to_addrs: list[str], subject: str, body: str, smtp_password: str) -> None:
+    """Send one email, addressed to ourselves with every respondent in Bcc so
+    strangers who filled in a public form never see each other's address."""
+    if not to_addrs:
+        return
+    message = EmailMessage()
+    message["Subject"] = subject
+    message["From"] = SMTP_FROM
+    message["To"] = SMTP_FROM
+    message["Bcc"] = ", ".join(to_addrs)
+    message.set_content(body)
+    with smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT, timeout=30) as smtp:
+        smtp.login(SMTP_USER, smtp_password)
+        smtp.send_message(message)
+
+
+def build_date_change_email(session: dict, old_session: dict) -> tuple[str, str]:
+    subject = f"Cambio de fecha: {session['titulo']}"
+    body = (
+        "Hola,\n\n"
+        f"La sesión «{session['titulo']}» del Speaker's Corner ha cambiado de fecha.\n\n"
+        f"Antes: {format_session_datetime(old_session['fecha'], old_session['hora'])}\n"
+        f"Ahora: {format_session_datetime(session['fecha'], session['hora'])}\n"
+        f"Lugar: {session['lugar']}\n\n"
+        "Tu inscripción se mantiene, no hace falta que vuelvas a apuntarte. Si la "
+        f"nueva fecha no te va bien, escríbenos a {SMTP_FROM}.\n\n"
+        "Gracias,\nSpeaker's Corner Termes Montbrió"
+    )
+    return subject, body
+
+
+def build_cancellation_email(old_session: dict) -> tuple[str, str]:
+    subject = f"Sesión cancelada: {old_session['titulo']}"
+    body = (
+        "Hola,\n\n"
+        f"Lamentamos informarte de que la sesión «{old_session['titulo']}», prevista "
+        f"para el {format_session_datetime(old_session['fecha'], old_session['hora'])}, ha "
+        "sido cancelada.\n\n"
+        f"Disculpa las molestias. Si tienes alguna duda, escríbenos a {SMTP_FROM}.\n\n"
+        "Gracias,\nSpeaker's Corner Termes Montbrió"
+    )
+    return subject, body
+
+
+def handle_date_change(
+    session: dict, old_session: dict, app_password: str, smtp_password: str | None
+) -> None:
+    form_id = session.get("form_id")
+    if not form_id:
+        return
+    try:
+        nc_request(
+            "PATCH",
+            f"/forms/{form_id}",
+            app_password,
+            {
+                "keyValuePairs": {
+                    "title": build_form_title(session),
+                    "description": build_form_description(session),
+                    "expires": session_expiry_timestamp(session["fecha"], session["hora"]),
+                }
+            },
+        )
+        if smtp_password:
+            emails = fetch_submission_emails(form_id, app_password)
+            if emails:
+                subject, body = build_date_change_email(session, old_session)
+                send_email(emails, subject, body, smtp_password)
+    except Exception as error:
+        print(f"No s'ha pogut actualitzar/avisar del canvi de data per a {session['id']}: {error}")
+
+
+def handle_cancellation(old_session: dict, app_password: str, smtp_password: str | None) -> None:
+    form_id = old_session.get("form_id")
+    if not form_id:
+        return
+    try:
+        nc_request("PATCH", f"/forms/{form_id}", app_password, {"keyValuePairs": {"state": 1}})
+        if smtp_password:
+            emails = fetch_submission_emails(form_id, app_password)
+            if emails:
+                subject, body = build_cancellation_email(old_session)
+                send_email(emails, subject, body, smtp_password)
+    except Exception as error:
+        print(
+            "No s'ha pogut tancar el formulari / avisar de la cancel·lació per a "
+            f"{old_session['id']}: {error}"
+        )
+
+
+def sync_changes_and_cancellations(
+    new_sessions: list[dict],
+    old_by_id: dict,
+    today: str,
+    app_password: str | None,
+    smtp_password: str | None,
+) -> None:
+    """Detect date changes and cancellations against the previous run and act
+    on them — skipped entirely without an app password (nothing to call).
+
+    A session that simply aged into the past (its own `fecha` is now before
+    `today`) is not a cancellation — parse_sessions drops it on purpose, same
+    as any other past session. Only a still-upcoming session that vanished
+    (deleted, or un-confirmed) counts as cancelled.
+    """
+    if not app_password:
+        return
+    new_by_id = {s["id"]: s for s in new_sessions}
+    for session in new_sessions:
+        old = old_by_id.get(session["id"])
+        if not old or not old.get("form_id"):
+            continue
+        if old["fecha"] != session["fecha"] or old["hora"] != session["hora"]:
+            handle_date_change(session, old, app_password, smtp_password)
+    for old_id, old_session in old_by_id.items():
+        if old_id in new_by_id or not old_session.get("form_id"):
+            continue
+        if old_session["fecha"] < today:
+            continue  # aged into the past on its own -- not a cancellation
+        handle_cancellation(old_session, app_password, smtp_password)
 
 
 def main() -> int:
     ics_bytes = fetch_ics(ICS_URL)
     generated_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-    agenda = build_agenda(ics_bytes, ICS_URL, generated_at)
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    agenda = build_agenda(ics_bytes, ICS_URL, generated_at, today=today)
     new_sessions = agenda["sesiones"]
 
     old_sessions = None
@@ -227,7 +386,10 @@ def main() -> int:
             old_sessions = None
 
     old_by_id = {s["id"]: s for s in (old_sessions or [])}
-    attach_form_urls(new_sessions, old_by_id, os.environ.get("NEXTCLOUD_APP_PASSWORD"))
+    app_password = os.environ.get("NEXTCLOUD_APP_PASSWORD")
+    smtp_password = os.environ.get("SMTP_PASSWORD")
+    sync_changes_and_cancellations(new_sessions, old_by_id, today, app_password, smtp_password)
+    attach_form_urls(new_sessions, old_by_id, app_password)
 
     if old_sessions == new_sessions:
         print("agenda.json sense canvis (sessions idèntiques), no s'escriu res de nou.")

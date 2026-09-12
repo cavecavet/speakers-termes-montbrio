@@ -24,6 +24,7 @@ jobs:
       - name: Run sync script
         env:
           NEXTCLOUD_APP_PASSWORD: ${{ secrets.NEXTCLOUD_APP_PASSWORD }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
         run: python scripts/sync_agenda.py
 
       - name: Commit changes if any

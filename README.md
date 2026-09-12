@@ -57,6 +57,22 @@ mà**:
 Perquè això funcioni cal el secret de GitHub Actions `NEXTCLOUD_APP_PASSWORD`
 (veure més avall).
 
+## Canvis de data i cancel·lacions: també automàtics
+
+- **Si canvies la data/hora** d'una sessió que ja tenia formulari, el
+  sincronitzador li actualitza sol el títol, la descripció i el tancament
+  (`expires`), i envia un correu (en `Cco`, un sol enviament) a totes les
+  persones ja inscrites avisant del canvi. La inscripció es manté, no cal que
+  tornin a apuntar-se.
+- **Si elimines o desconfirmes** una sessió que encara no havia passat, el seu
+  formulari es **tanca** (no s'esborra — les respostes queden per si calen) i
+  s'envia un correu de cancel·lació a totes les persones inscrites.
+- Una sessió que simplement **ja ha passat** no compta com a cancel·lada — no
+  s'envia cap correu en aquest cas, és el comportament normal.
+- Requereix, a més del secret anterior, `SMTP_PASSWORD` (veure més avall). Sense
+  aquest segon secret, l'actualització del formulari es fa igualment; només
+  s'omet l'enviament del correu.
+
 - Sincronització manual (per provar-la fora del cron de GitHub Actions; sense la
   variable `NEXTCLOUD_APP_PASSWORD` no crea formularis nous, però sí actualitza
   l'agenda):
@@ -73,10 +89,10 @@ Perquè això funcioni cal el secret de GitHub Actions `NEXTCLOUD_APP_PASSWORD`
   Newsletter: encara pendent — plantilla de preguntes a
   `docs/formularis-plantilla.md`.
 
-## Secret `NEXTCLOUD_APP_PASSWORD`
+## Secrets necessaris
 
-Necessari perquè el workflow de sincronització pugui crear formularis a Nextcloud
-en nom de `admin`:
+**`NEXTCLOUD_APP_PASSWORD`** — perquè el workflow pugui crear/actualitzar/tancar
+formularis a Nextcloud en nom de `admin`:
 
 1. Nextcloud → Ajustes personales → Seguridad → «Crear nueva contraseña de
    aplicación».
@@ -84,5 +100,18 @@ en nom de `admin`:
    `stdin`), o Settings → Secrets and variables → Actions → New repository
    secret.
 
-Sense aquest secret, la sincronització de l'agenda continua funcionant amb
-normalitat — simplement no crea formularis nous fins que el secret existeixi.
+**`SMTP_PASSWORD`** — perquè el workflow pugui avisar per correu els inscrits
+d'un canvi de data o una cancel·lació. Reutilitza el mateix servidor de sortida
+que ja té configurat Nextcloud (Ajustes básicos → Servidor de correo
+electrónico: `smtp.gmail.com:465`, usuari `associaciocavecavet@gmail.com`) —
+només cal la contrasenya (si Nextcloud hi té una contrasenya d'aplicació de
+Gmail configurada, és la mateixa que va aquí):
+
+```bash
+gh secret set SMTP_PASSWORD --repo cavecavet/speakers-termes-montbrio
+```
+
+Sense `NEXTCLOUD_APP_PASSWORD`, la sincronització de l'agenda continua
+funcionant amb normalitat — simplement no crea/actualitza/tanca formularis fins
+que el secret existeixi. Sense `SMTP_PASSWORD`, els formularis es creen i
+s'actualitzen igual, però no s'envia cap correu d'avís.
