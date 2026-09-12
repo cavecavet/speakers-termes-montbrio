@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-12T07:31:36Z",
+  "generated_at": "2026-09-12T07:35:18Z",
   "source": "https://cloud.cavecavet.org/remote.php/dav/public-calendars/RP5xH59a33ZBNwLx?export",
   "sesiones": [
     {
@@ -21,8 +21,8 @@
       "ponente": "Ana M. Nieto i Maribel Rodríguez",
       "lugar": "Hotel Termes de Montbrió",
       "tipo": "gratuito",
-      "form_url": null,
-      "form_id": null
+      "form_url": "https://cloud.cavecavet.org/apps/forms/s/oDfbqxCnowHnMNB9LFpjAZyc",
+      "form_id": 5
     }
   ]
 }
