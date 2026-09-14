@@ -198,6 +198,23 @@ form.subscribe input::placeholder{color:var(--text-on-ink-muted);}
 .logo-card.dark{background:var(--ink);border-color:var(--ink-line);}
 .logo-card.dark img{height:30px;}
 
+/* collaborations */
+.collab-grid{
+  display:flex;flex-wrap:wrap;gap:1rem;
+}
+.collab-logo{
+  flex:0 0 auto;
+  display:flex;align-items:center;justify-content:center;
+  background:#fff;border:1px solid var(--stone-line);border-radius:6px;
+  padding:1rem 1.3rem;height:4.2rem;
+  filter:grayscale(1);opacity:.75;
+  transition:filter .15s ease, opacity .15s ease, border-color .15s ease;
+}
+.collab-logo:hover{filter:none;opacity:1;border-color:var(--brass);}
+.collab-logo img{height:100%;width:auto;max-width:140px;object-fit:contain;}
+.collab-logo.dark{background:var(--ink);border-color:var(--ink-line);filter:none;opacity:.9;}
+.collab-logo.dark:hover{opacity:1;}
+
 /* footer */
 footer{background:var(--ink);border-top:1px solid var(--ink-line);padding:3rem 1.5rem 2rem;}
 .foot-grid{display:flex;justify-content:space-between;gap:2rem;flex-wrap:wrap;}

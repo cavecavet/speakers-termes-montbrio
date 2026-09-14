@@ -1,7 +1,7 @@
 const DICT = {
   ca: {
     "nav.tag": "Termes Montbrió · Cave Cavet", "nav.agenda": "Agenda", "nav.speaker": "Vull ser speaker", "nav.videos": "Vídeos", "nav.contact": "Contacte",
-    "hero.eyebrow": "Hotel Termes Montbrió\nAssociació Cave Cavet",
+    "hero.eyebrow": "Associació Cave Cavet\nA l'Hotel Termes Montbrió",
     "hero.title": "Xerrades i tallers per pensar-hi, cada mes",
     "hero.body": "Un espai obert de conversa, aprenentatge i comunitat entre les termes de Montbrió. La majoria de sessions són gratuïtes, amb inscripció en línia.",
     "hero.cta1": "Veure l'agenda", "hero.cta2": "Vull ser speaker",
@@ -17,15 +17,17 @@ const DICT = {
     "videos.body": "Encara no hem enregistrat cap sessió. Aquí hi apareixeran els vídeos de les xerrades i els episodis del pòdcast a mesura que es publiquin.",
     "news.eyebrow": "Newsletter", "news.title": "No et perdis cap sessió", "news.body": "Un correu breu, un cop al mes, amb les properes xerrades i els vídeos publicats.",
     "news.name": "Nom", "news.email": "Correu electrònic", "news.cta": "Subscriu-te",
-    "about.eyebrow": "Qui ho organitza", "about.title": "Una col·laboració entre l'hotel i l'associació",
-    "about.body": "L'Hotel Termes Montbrió posa l'espai i les termes; l'Associació Cave Cavet aporta la xarxa de speakers i la programació. Junts construïm un cicle de xerrades obert a hostes i a la comunitat local.",
-    "foot.orgs": "Associació Cave Cavet · Hotel Termes Montbrió",
+    "about.eyebrow": "Qui ho organitza", "about.title": "Una iniciativa de l'Associació Cave Cavet",
+    "about.body": "L'Associació Cave Cavet impulsa i programa aquest cicle de xerrades, que té lloc a l'Hotel Termes Montbrió, que hi posa l'espai i les termes. Un cicle obert a hostes de l'hotel i a la comunitat local.",
+    "collab.eyebrow": "Amb el suport de", "collab.title": "Col·laboracions",
+    "collab.body": "Entitats, institucions i projectes que fan possible aquest cicle de xerrades.",
+    "foot.orgs": "Una iniciativa de l'Associació Cave Cavet · amb la col·laboració de l'Hotel Termes Montbrió",
     "form.pending": "Formulari en preparació — s'enllaçarà properament.",
     "months": "GEN,FEB,MAR,ABR,MAI,JUN,JUL,AGO,SET,OCT,NOV,DES"
   },
   es: {
     "nav.tag": "Termes Montbrió · Cave Cavet", "nav.agenda": "Agenda", "nav.speaker": "Quiero ser speaker", "nav.videos": "Vídeos", "nav.contact": "Contacto",
-    "hero.eyebrow": "Hotel Termes Montbrió\nAssociació Cave Cavet",
+    "hero.eyebrow": "Associació Cave Cavet\nEn el Hotel Termes Montbrió",
     "hero.title": "Charlas y talleres para pensar, cada mes",
     "hero.body": "Un espacio abierto de conversación, aprendizaje y comunidad en las termas de Montbrió. La mayoría de las sesiones son gratuitas, con inscripción en línea.",
     "hero.cta1": "Ver la agenda", "hero.cta2": "Quiero ser speaker",
@@ -41,9 +43,11 @@ const DICT = {
     "videos.body": "Todavía no hemos grabado ninguna sesión. Aquí aparecerán los vídeos de las charlas y los episodios del podcast a medida que se publiquen.",
     "news.eyebrow": "Newsletter", "news.title": "No te pierdas ninguna sesión", "news.body": "Un correo breve, una vez al mes, con las próximas charlas y los vídeos publicados.",
     "news.name": "Nombre", "news.email": "Correo electrónico", "news.cta": "Suscríbete",
-    "about.eyebrow": "Quién lo organiza", "about.title": "Una colaboración entre el hotel y la asociación",
-    "about.body": "El Hotel Termes Montbrió pone el espacio y las termas; la Associació Cave Cavet aporta la red de speakers y la programación. Juntos construimos un ciclo de charlas abierto a huéspedes y a la comunidad local.",
-    "foot.orgs": "Associació Cave Cavet · Hotel Termes Montbrió",
+    "about.eyebrow": "Quién lo organiza", "about.title": "Una iniciativa de la Associació Cave Cavet",
+    "about.body": "La Associació Cave Cavet impulsa y programa este ciclo de charlas, que tiene lugar en el Hotel Termes Montbrió, que aporta el espacio y las termas. Un ciclo abierto a huéspedes del hotel y a la comunidad local.",
+    "collab.eyebrow": "Con el apoyo de", "collab.title": "Colaboraciones",
+    "collab.body": "Entidades, instituciones y proyectos que hacen posible este ciclo de charlas.",
+    "foot.orgs": "Una iniciativa de la Associació Cave Cavet · con la colaboración del Hotel Termes Montbrió",
     "form.pending": "Formulario en preparación — se enlazará próximamente.",
     "months": "ENE,FEB,MAR,ABR,MAY,JUN,JUL,AGO,SEP,OCT,NOV,DIC"
   }
