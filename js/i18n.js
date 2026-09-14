@@ -1,13 +1,13 @@
 const DICT = {
   ca: {
-    "nav.tag": "Termes Montbrió · Cave Cavet", "nav.agenda": "Agenda", "nav.speaker": "Vull ser speaker", "nav.videos": "Vídeos", "nav.contact": "Contacte",
-    "hero.eyebrow": "Associació Cave Cavet\nA l'Hotel Termes Montbrió",
+    "nav.tag": "Associació Cave Cavet", "nav.agenda": "Agenda", "nav.speaker": "Vull ser speaker", "nav.videos": "Vídeos", "nav.contact": "Contacte",
+    "hero.eyebrow": "Associació Cave Cavet, xerrades\nA l'Hotel Termes Montbrió",
     "hero.title": "Xerrades i tallers per pensar-hi, cada mes",
-    "hero.body": "Un espai obert de conversa, aprenentatge i comunitat entre les termes de Montbrió. La majoria de sessions són gratuïtes, amb inscripció en línia.",
+    "hero.body": "Un espai obert de conversa, aprenentatge i comunitat a les termes de Montbrió. Sessions gratuïtes, amb inscripció en línia.",
     "hero.cta1": "Veure l'agenda", "hero.cta2": "Vull ser speaker",
-    "hero.next": "PRÒXIMA SESSIÓ", "hero.nextCta": "Inscriu-te",
+    "hero.next": "PROPERA SESSIÓ", "hero.nextCta": "Inscriu-te",
     "hero.emptyTitle": "La pròxima sessió es publicarà aviat.",
-    "agenda.eyebrow": "Programa", "agenda.title": "Pròximes sessions", "agenda.cta": "Inscripció",
+    "agenda.eyebrow": "Programa", "agenda.title": "Properes sessions", "agenda.cta": "Inscripció",
     "agenda.empty": "Pròximament noves sessions.",
     "tag.gratuito": "Gratuït",
     "speaker.eyebrow": "Obert a la comunitat", "speaker.title": "Tens alguna cosa a explicar?",
@@ -26,10 +26,10 @@ const DICT = {
     "months": "GEN,FEB,MAR,ABR,MAI,JUN,JUL,AGO,SET,OCT,NOV,DES"
   },
   es: {
-    "nav.tag": "Termes Montbrió · Cave Cavet", "nav.agenda": "Agenda", "nav.speaker": "Quiero ser speaker", "nav.videos": "Vídeos", "nav.contact": "Contacto",
-    "hero.eyebrow": "Associació Cave Cavet\nEn el Hotel Termes Montbrió",
+    "nav.tag": "Associació Cave Cavet", "nav.agenda": "Agenda", "nav.speaker": "Quiero ser speaker", "nav.videos": "Vídeos", "nav.contact": "Contacto",
+    "hero.eyebrow": "Associació Cave Cavet, charlas\nEn el Hotel Termes Montbrió",
     "hero.title": "Charlas y talleres para pensar, cada mes",
-    "hero.body": "Un espacio abierto de conversación, aprendizaje y comunidad en las termas de Montbrió. La mayoría de las sesiones son gratuitas, con inscripción en línea.",
+    "hero.body": "Un espacio abierto de conversación, aprendizaje y comunidad en las termas de Montbrió. Sesiones gratuitas, con inscripción en línea.",
     "hero.cta1": "Ver la agenda", "hero.cta2": "Quiero ser speaker",
     "hero.next": "PRÓXIMA SESIÓN", "hero.nextCta": "Inscríbete",
     "hero.emptyTitle": "La próxima sesión se publicará pronto.",
