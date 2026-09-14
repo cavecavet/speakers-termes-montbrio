@@ -240,5 +240,12 @@ footer{background:var(--ink);border-top:1px solid var(--ink-line);padding:3rem 1
   .nav-links{display:none;}
 }
 
+@media (max-width:480px){
+  .brand-name small{display:none;}
+  .hotel-mark img{height:20px;}
+  .lang-toggle{font-size:.66rem;}
+  .lang-toggle button{padding:.3rem .55rem;}
+}
+
 #agenda-empty{margin-top:1rem;}
 .badge-preview{display:none;}
