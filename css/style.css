@@ -193,9 +193,14 @@ form.subscribe input::placeholder{color:var(--text-on-ink-muted);}
 .logo-card{
   background:#fff;border:1px solid var(--stone-line);border-radius:6px;
   padding:1.4rem;display:flex;align-items:center;gap:1rem;
+  text-decoration:none;transition:border-color .15s ease;
 }
+a.logo-card:hover{border-color:var(--brass);}
 .logo-card img.assoc{height:44px;}
 .logo-card.dark{background:var(--ink);border-color:var(--ink-line);}
+.logo-email{font-size:.9rem;color:var(--text-on-stone-muted);}
+.logo-email a{color:var(--text-on-stone);text-decoration:none;}
+.logo-email a:hover{text-decoration:underline;}
 .logo-card.dark img{height:30px;}
 
 /* collaborations */
