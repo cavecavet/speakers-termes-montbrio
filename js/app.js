@@ -1,6 +1,10 @@
 const FORM_URLS = {
-  // Reemplaça pels URLs reals de Nextcloud Forms o Google Forms quan existeixin.
-  speaker: "https://cloud.cavecavet.org/apps/forms/s/2LJptgTKoXNtGRTKfEZMqcjT",
+  // El formulari "speaker" té una còpia per idioma (cadascuna enllaça a l'altra
+  // des de la seva pròpia descripció a Nextcloud Forms).
+  speaker: {
+    ca: "https://cloud.cavecavet.org/apps/forms/s/2LJptgTKoXNtGRTKfEZMqcjT",
+    es: "https://cloud.cavecavet.org/apps/forms/s/Qt2JgH7qZQMqNnAqLdFLMD4N"
+  },
   newsletter: "#",
   sesion_generica: "#"
 };
@@ -103,11 +107,19 @@ function renderAgenda() {
   wireFormLinks(list);
 }
 
+function resolveFormUrl(key) {
+  const entry = FORM_URLS[key];
+  if (entry && typeof entry === "object") {
+    return entry[window.I18N.getLang()] || entry.ca;
+  }
+  return entry;
+}
+
 function wireFormLinks(scope) {
   scope.querySelectorAll("[data-form]").forEach((el) => {
     el.addEventListener("click", (event) => {
       event.preventDefault();
-      const url = el.dataset.url || FORM_URLS[el.dataset.form];
+      const url = el.dataset.url || resolveFormUrl(el.dataset.form);
       if (!url || url === "#") {
         alert(window.I18N.t("form.pending"));
         return;
