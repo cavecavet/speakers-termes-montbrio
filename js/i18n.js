@@ -55,8 +55,18 @@ const DICT = {
 
 const STORAGE_KEY = "speakers-termes-lang";
 
+function detectLang() {
+  const langs = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || ""];
+  for (const l of langs) {
+    const base = l.toLowerCase().slice(0, 2);
+    if (base === "ca") return "ca";
+    if (base === "es") return "es";
+  }
+  return "ca";
+}
+
 function getLang() {
-  return localStorage.getItem(STORAGE_KEY) || "ca";
+  return localStorage.getItem(STORAGE_KEY) || detectLang();
 }
 
 function t(key) {
